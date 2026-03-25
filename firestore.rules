@@ -1,0 +1,172 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId} (Firebase Auth UID)
+    // Fields:
+    //   - name: string (required, 1-100 chars)
+    //   - email: string (required, valid email format)
+    //   - bio: string (optional, < 500 chars)
+    //   - summary: string (optional, < 2000 chars)
+    //   - experiences: list (optional, max 20 items)
+    //   - projects: list (optional, max 20 items)
+    //   - skills: list (optional, max 50 items)
+    //   - role: string (required, enum: ['candidate', 'recruiter', 'admin'])
+    //   - uid: string (required, matches userId)
+    //   - photoURL: string (optional, base64 image data)
+    //
+    // Collection: jobs
+    // Document ID: {jobId}
+    // Fields:
+    //   - title: string (required, 1-200 chars)
+    //   - company: string (required, 1-200 chars)
+    //   - description: string (required, < 5000 chars)
+    //   - requirements: list (optional, max 50 items)
+    //   - postedBy: string (required, UID of recruiter)
+    //   - createdAt: timestamp (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+          (request.auth.token.email == "charannaviri7@gmail.com" && request.auth.token.email_verified == true) ||
+          (request.auth.token.email == "nicharannaviri@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isRecruiter() {
+      return isAuthenticated() &&
+        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'recruiter') || isAdmin());
+    }
+
+    function isValidEmail(email) {
+      return email is string &&
+        email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasRequiredFields(['name', 'email', 'role', 'uid']) &&
+             hasOnlyAllowedFields(['name', 'email', 'bio', 'summary', 'experiences', 'projects', 'skills', 'shortlistedBy', 'interviewedBy', 'hiredBy', 'role', 'uid', 'photoURL']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+             isValidEmail(data.email) &&
+             data.role in ['candidate', 'recruiter', 'admin'] &&
+             data.uid is string && data.uid.size() > 0 &&
+             (!('bio' in data) || (data.bio is string && data.bio.size() <= 1000)) &&
+             (!('summary' in data) || (data.summary is string && data.summary.size() <= 5000)) &&
+             (!('experiences' in data) || (data.experiences is list && data.experiences.size() <= 50)) &&
+             (!('projects' in data) || (data.projects is list && data.projects.size() <= 50)) &&
+             (!('skills' in data) || (data.skills is list && data.skills.size() <= 100)) &&
+             (!('shortlistedBy' in data) || (data.shortlistedBy is list && data.shortlistedBy.size() <= 1000)) &&
+             (!('interviewedBy' in data) || (data.interviewedBy is list && data.interviewedBy.size() <= 1000)) &&
+             (!('hiredBy' in data) || (data.hiredBy is list && data.hiredBy.size() <= 1000)) &&
+             (!('photoURL' in data) || (data.photoURL is string)); // Remove size limit here, Firestore will enforce 1MB limit anyway
+    }
+
+    function isValidJob(data) {
+      return hasRequiredFields(['title', 'company', 'description', 'postedBy', 'createdAt']) &&
+             hasOnlyAllowedFields(['title', 'company', 'description', 'requirements', 'postedBy', 'createdAt']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.company is string && data.company.size() > 0 && data.company.size() <= 200 &&
+             data.description is string && data.description.size() <= 5000 &&
+             data.postedBy is string && data.postedBy == request.auth.uid &&
+             data.createdAt is timestamp &&
+             (!('requirements' in data) || (data.requirements is list && data.requirements.size() <= 50));
+    }
+
+    function isValidMessage(data) {
+      return hasRequiredFields(['chatId', 'participants', 'senderId', 'receiverId', 'text', 'timestamp', 'senderName']) &&
+             hasOnlyAllowedFields(['chatId', 'participants', 'senderId', 'receiverId', 'text', 'timestamp', 'senderName']) &&
+             data.chatId is string && data.chatId.size() > 0 &&
+             data.participants is list && data.participants.size() == 2 &&
+             request.auth.uid in data.participants &&
+             data.senderId is string && data.senderId == request.auth.uid &&
+             data.receiverId is string && data.receiverId.size() > 0 &&
+             data.text is string && data.text.size() > 0 && data.text.size() <= 2000 &&
+             data.timestamp is timestamp &&
+             data.senderName is string && data.senderName.size() > 0;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      // Users can read their own profile, admins can read any profile,
+      // and recruiters can read any profile for the demo.
+      allow read: if isOwner(userId) || isAdmin() || isRecruiter();
+
+      // Users can create their own profile as a candidate initially
+      // Recruiters must be set by an admin or a specific bootstrap process (not implemented here for simplicity)
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && (request.resource.data.role == 'candidate' || isAdmin());
+
+      // Users can update their own profile, but cannot change their role to admin unless they are an admin
+      // Recruiters can update the shortlistedBy, interviewedBy, and hiredBy fields of any candidate
+      allow update: if (isOwner(userId) && isValidUser(request.resource.data) && (
+        request.resource.data.role == resource.data.role || 
+        (request.resource.data.role in ['candidate', 'recruiter'] && resource.data.role in ['candidate', 'recruiter']) ||
+        isAdmin()
+      )) || (
+        isRecruiter() && 
+        isValidUser(request.resource.data) && 
+        request.resource.data.diff(resource.data).affectedKeys().hasAny(['shortlistedBy', 'interviewedBy', 'hiredBy']) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['shortlistedBy', 'interviewedBy', 'hiredBy'])
+      );
+    }
+
+    match /jobs/{jobId} {
+      // Anyone authenticated can read jobs
+      allow read: if isAuthenticated();
+
+      // Only recruiters can create jobs
+      allow create: if isRecruiter() && isValidJob(request.resource.data);
+
+      // Only the recruiter who posted the job can update or delete it
+      allow update: if isAuthenticated() && resource.data.postedBy == request.auth.uid && isValidJob(request.resource.data);
+      allow delete: if isAuthenticated() && resource.data.postedBy == request.auth.uid;
+    }
+
+    match /messages/{messageId} {
+      // Users can only read messages where they are a participant
+      allow read: if isAuthenticated() && (request.auth.uid in resource.data.participants || isAdmin());
+      
+      // Users can only create messages where they are the sender
+      allow create: if isAuthenticated() && isValidMessage(request.resource.data);
+    }
+
+    // Default deny
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

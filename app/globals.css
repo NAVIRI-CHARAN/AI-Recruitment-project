@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+@layer base {
+  @media print {
+    @page {
+      margin: 2cm;
+    }
+    
+    body {
+      background: white !important;
+      color: black !important;
+    }
+
+    .print-hidden {
+      display: none !important;
+    }
+
+    /* Ensure background colors and images are printed */
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores candidate and recruiter profile information.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Full name of the user." },
+        "email": { "type": "string", "format": "email", "description": "Email address." },
+        "bio": { "type": "string", "description": "Short professional bio." },
+        "summary": { "type": "string", "description": "AI-generated professional summary." },
+        "experiences": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string" },
+              "company": { "type": "string" },
+              "duration": { "type": "string" },
+              "bulletPoints": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "description": { "type": "string" },
+              "technologies": { "type": "array", "items": { "type": "string" } },
+              "link": { "type": "string" }
+            }
+          }
+        },
+        "skills": { "type": "array", "items": { "type": "string" } },
+        "shortlistedBy": { "type": "array", "items": { "type": "string" }, "description": "List of recruiter UIDs who shortlisted this candidate." },
+        "interviewedBy": { "type": "array", "items": { "type": "string" }, "description": "List of recruiter UIDs who interviewed this candidate." },
+        "hiredBy": { "type": "array", "items": { "type": "string" }, "description": "List of recruiter UIDs who hired this candidate." },
+        "role": { "type": "string", "enum": ["candidate", "recruiter", "admin"] },
+        "uid": { "type": "string", "description": "Firebase Auth UID." }
+      },
+      "required": ["name", "email", "role", "uid"]
+    },
+    "Job": {
+      "title": "Job Posting",
+      "description": "Stores job postings created by recruiters.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "company": { "type": "string" },
+        "description": { "type": "string" },
+        "requirements": { "type": "array", "items": { "type": "string" } },
+        "postedBy": { "type": "string", "description": "UID of the recruiter." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "company", "postedBy"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Stores direct messages between recruiters and candidates.",
+      "type": "object",
+      "properties": {
+        "chatId": { "type": "string", "description": "Unique ID for the chat (sorted UIDs)." },
+        "participants": { "type": "array", "items": { "type": "string" }, "description": "List of UIDs in the chat." },
+        "senderId": { "type": "string", "description": "UID of the sender." },
+        "receiverId": { "type": "string", "description": "UID of the receiver." },
+        "text": { "type": "string", "description": "Message content." },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "senderName": { "type": "string" }
+      },
+      "required": ["chatId", "senderId", "receiverId", "text"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Collection of user profiles."
+    },
+    "/jobs/{jobId}": {
+      "schema": "Job",
+      "description": "Collection of job postings."
+    },
+    "/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Collection of direct messages."
+    }
+  }
+}
