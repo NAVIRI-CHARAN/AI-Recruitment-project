@@ -22,4 +22,5 @@ To improve hiring efficiency by removing resume-based limitations and enabling s
 (Add Vercel link here)
 
 ## 📷 Screenshots
-(Add screenshots here)
+<img width="1652" height="727" alt="image" src="https://github.com/user-attachments/assets/2a83eccd-bd28-4d1e-901c-3fd9a73a9c65" />
+
