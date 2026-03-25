@@ -1,20 +1,25 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# AI Recruiter Platform
 
-# Run and deploy your AI Studio app
+## 🚀 Overview
+This project is an AI-powered recruitment platform that replaces traditional resume uploads with smart profile building.
 
-This contains everything you need to run your app locally.
+## 🎯 Features
+- AI-assisted profile creation
+- Skill suggestions
+- Experience structuring
+- Recruiter dashboard
+- Candidate comparison
 
-View your app in AI Studio: https://ai.studio/apps/2b92869c-8a3e-401f-8874-9076c9f9fdd5
+## 🧠 Tech Stack
+- Frontend: Next.js / React
+- Backend: API Routes
+- AI: Google AI Studio
 
-## Run Locally
+## 📌 Purpose
+To improve hiring efficiency by removing resume-based limitations and enabling structured candidate evaluation.
 
-**Prerequisites:**  Node.js
+## 🔗 Demo
+(Add Vercel link here)
 
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 📷 Screenshots
+(Add screenshots here)
